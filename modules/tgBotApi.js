@@ -44,52 +44,6 @@ function handleUpdatesFromLongPolling(handleUpdate, updates) {
     }
 }
 
-async function callApiMethodAsync(methodName, methodParams={}) {
-    return new Promise(function (resolve, reject) {
-        const requestJson = JSON.stringify(methodParams);
-        const requestOptions = {
-            headers: {
-                "Content-Type": "application/json",
-                "Content-Length": Buffer.byteLength(requestJson)
-            }
-        };
-
-        const req = https.request(apiurl + methodName, requestOptions);
-        req.on('response', (res) => {
-            var responseJson = '';
-            res.on('data', (chunk) => { responseJson += chunk; });
-            res.on('end', () => {
-                console.log('Response END');
-                responseObject = JSON.parse(responseJson);
-                if(responseObject.ok) {
-                    resolve(responseObject.result);
-                }
-                else {
-                    const errorMsg = `API error ${responseObject.error_code} in ${methodName}`;
-                    console.error(errorMsg);
-                    console.error(responseObject.description);
-                    reject(new Error(errorMsg));
-                }
-            });
-            // See https://nodejs.org/api/http.html#http_http_request_options_callback
-            res.on('error', (e) => {
-                console.error('Response error in ' + methodName);
-                console.error(e);
-                reject(e);
-            });
-        });
-        // See https://nodejs.org/api/http.html#http_http_request_options_callback
-        req.on('error', (e) => {
-            console.error('Request error in ' + methodName);
-            console.error(e);
-            reject(e);
-        });
-
-        req.write(requestJson);
-        req.end();
-    });
-}
-
 function callApiMethod(methodName, methodParams={}, callbacks={}) {
     const {
         after = ()=>{},
@@ -237,33 +191,13 @@ function sendStandardMessage(chat_id, messageKey, reply_to=undefined) {
     sendTextMessage(chat_id, presetMessages.get(messageKey), reply_to);
 }
 
-// async function doIfAdmin(chat_id, user_id, callback) {
-//     const params = {
-//         chat_id: chat_id,
-//         user_id: user_id
-//     }
-//     const handler = function(chatMember) {
-//         const allowedStatuses = ['owner', 'administrator'];
-//         if(allowedStatuses.includes(chatMember.status)) {
-//             callback();
-//         }
-//         else {
-//             sendStandardMessage(chat_id, 'permissionAdmin');
-//         }
-//     }
-//     return callApiMethodAsync('getChatMember', params, {handler: handler});
-// }
-
-
 module.exports = {
-    callApiMethodAsync: callApiMethodAsync,
-    callApiMethod: callApiMethod,
-    doLongPolling: doLongPolling,
-    copyWithKeyboard: copyWithKeyboard,
-    replyWithKeyboard: replyWithKeyboard,
-    replaceKeyboard: replaceKeyboard,
-    deleteMessage: deleteMessage,
-    sendTextMessage: sendTextMessage,
-    sendStandardMessage: sendStandardMessage,
-    // doIfAdmin: doIfAdmin,
+    callApiMethod,
+    doLongPolling,
+    copyWithKeyboard,
+    replyWithKeyboard,
+    replaceKeyboard,
+    deleteMessage,
+    sendTextMessage,
+    sendStandardMessage,
 }

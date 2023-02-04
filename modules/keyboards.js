@@ -35,40 +35,7 @@ function makeInlineKeyboard(buttons, maxColumns = MAX_COLUMNS) {
     return {inline_keyboard: keyboard};
 }
 
-class Keyboard {
-    buttons = [];
-    layout = [[]];
-    maxColumns = 1;
-
-    makeLayout(buttons) {
-        buttons = [...new Set(buttons)];
-        buttons = buttons.map(Button.make);
-
-        var i = 0;
-        while(i < totalButtons) {
-            layout.push(buttons.slice(i, i + this.maxColumns));
-            i += this.maxColumns;
-        }
-
-        return layout;
-    }
-
-    constructor(buttons, maxColumns = MAX_COLUMNS) {
-        this.buttons = buttons;
-        this.maxColumns = maxColumns;
-        this.layout = this.makeLayout(buttons);
-    }
-
-    toApi() {
-        return {inline_keyboard: this.layout};
-    }
-
-    update(newReaction, oldReaction = undefined) {
-
-    }
-}
-
 module.exports = {
-    Button: Button,
-    makeInlineKeyboard: makeInlineKeyboard,
+    Button,
+    makeInlineKeyboard,
 }

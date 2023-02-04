@@ -126,12 +126,12 @@ const {
 } = initSchema();
 
 module.exports = {
-    start: start,
-    stop: stop,
-    saveReaction: saveReaction,
-    deleteReaction: deleteReaction,
-    getReaction: getReaction,
-    countReactions: countReactions,
-    saveChatSettings: saveChatSettings,
-    getChatSettings: getChatSettings,
+    start,
+    stop,
+    saveReaction,
+    deleteReaction,
+    getReaction,
+    countReactions,
+    saveChatSettings,
+    getChatSettings,
 };

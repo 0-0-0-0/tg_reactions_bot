@@ -22,7 +22,7 @@ async function handleBotCommand(entity, message) {
             let userCanEdit = true;
 
             if(message.chat.type !== "private") {
-                const chatMember = await api.callApiMethodAsync('getChatMember', {chat_id: message.chat.id, user_id: message.from.id});
+                const chatMember = api.callApiMethod('getChatMember', {chat_id: message.chat.id, user_id: message.from.id});
                 const allowedStatuses = ['owner', 'administrator'];
                 userCanEdit = allowedStatuses.includes(chatMember.status);
             }
