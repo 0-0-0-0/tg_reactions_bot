@@ -43,13 +43,6 @@ async function handleBotCommand(entity, message) {
     }
 }
 
-function handleReply(message, reply_to_message) {
-    if('text' in message && '+' === message.text.charAt(0)) {
-        handleReaction(reply_to_message, message.from.id, message.text.slice(1));
-        api.deleteMessage(message);
-    }
-}
-
 /**
  * handle callback query from an inline keyboard
  * @param {*} callback_query
@@ -137,20 +130,22 @@ async function handleUpdate(update) {
         }
     }
 
-    //handle replies to the bot's messages
+    //handle formatted replies
     if('message' in update && 'reply_to_message' in update.message) {
         const message = update.message;
         const reply_to_message = message.reply_to_message;
-        if(reply_to_message.from.id == me.id) {
-            handleReply(message, reply_to_message);
+        if(reply_to_message.from.id == me.id && message.text && '+' === message.text.charAt(0)) {
+            handleReaction(reply_to_message, message.from.id, message.text.slice(1));
+            api.deleteMessage(message);
+            return;
         }
-        return;
     }
 
     //any other messages sent to the chat
     if('message' in update) {
         const message = update.message;
         if(message.from.id == me.id) { return; }
+        if(message.text) { return; }
 
         if('media_group_id' in message) {
             if(message.media_group_id != lastMediaGroupId) {
@@ -167,28 +162,20 @@ async function handleUpdate(update) {
         settings = await db.getChatSettings(message.chat.id);
         if(settings && ('defaultReactions' in settings) && settings.defaultReactions.length) {
             const buttons = settings.defaultReactions.map(keyboards.Button.make);
-            const keyboard = keyboards.makeInlineKeyboard(buttons);
-            if(lastMediaGroupId) {
-                api.replyWithKeyboard(message, keyboard);
-            }
-            else{
-                api.copyWithKeyboard(message, keyboard);
-            }
         }
-        else {
-            // Prompt admins to add some default reactions
-            api.sendStandardMessage(message.chat.id, 'setDefaults');
-
-            // Use a global default
-            // db.saveChatSettings(message.chat.id, {defaultReactions: keyboards.defaultButtons});
-            // keyboard = keyboards.makeInlineKeyboard(keyboards.defaultButtons);
-            // api.copyWithKeyboard(message, keyboard);
+        else { buttons = []; }
+        const keyboard = keyboards.makeInlineKeyboard(buttons);
+        if(lastMediaGroupId) {
+            api.replyWithKeyboard(message, keyboard);
+        }
+        else{
+            api.copyWithKeyboard(message, keyboard);
         }
 
         return;
     }
 
-    //callback queries
+    //callback queries from the buttons
     if('callback_query' in update) {
         handleCallbackQuery(update.callback_query);
         return;

@@ -139,12 +139,17 @@ function deleteMessage(message) {
 }
 
 function copyWithKeyboard(message, keyboard) {
-    const params = {
+    let params = {
         from_chat_id: message.chat.id,
         message_id: message.message_id,
         chat_id: message.chat.id,
         reply_markup: keyboard,
+        disable_notification: true,
     };
+    if(message.reply_to_message) {
+        params.reply_to_message_id = message.reply_to_message.message_id;
+        params.allow_sending_without_reply = true;
+    }
     const callbacks = {
         after: () => {
             deleteMessage(message);
@@ -160,6 +165,7 @@ function replyWithKeyboard(message, keyboard, text='^') {
         chat_id: message.chat.id,
         text: text,
         reply_markup: keyboard,
+        disable_notification: true,
     }
 
     callApiMethod('sendMessage', params);
