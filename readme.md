@@ -11,6 +11,8 @@ No web framework was used, just `https` and `mongoose` for the database.
 
 BOT_TOKEN
 
-POLLING_TIMEOUT     timeout for long polling (in seconds)
+METHOD              - method for receiving updates. Permitted values: LONG_POLLING
 
-DB_PATH             DB path for MongoDB
+POLLING_TIMEOUT     - timeout for long polling (in seconds)
+
+DB_PATH             - DB path for MongoDB

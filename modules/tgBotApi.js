@@ -18,111 +18,83 @@ presetMessages.set('permissionAdmin', 'Only chat administrators can do that');
 presetMessages.set('permissionOwner', 'Only the chat owner can do that');
 
 
-function handleUpdatesFromLongPolling(handleUpdate, updates) {
+class TelegramBotApiError extends Error {
+    constructor(message, apiResponse) {
+        super(message);
+        this.apiResponse = apiResponse;
+    }
+}
+
+function calculateOffset(updates) {
     switch(updates.length) {
         case 0: {
-            console.log('No updates!');
             return undefined;
         }
         case 1: {
-            console.log('Single update');
             let mostRecentUpdate = updates[0];
-            handleUpdate(mostRecentUpdate);
             return mostRecentUpdate.update_id + 1;
         }
         default: {
-            console.log('Many updates:');
             let mostRecentUpdate = updates.reduce((mostRecentUpdate, update) => {
-                console.log({mostRecentUpdate: mostRecentUpdate.update_id, update: update.update_id})
-                handleUpdate(mostRecentUpdate);
                 return update.update_id > mostRecentUpdate.update_id ? update : mostRecentUpdate;
             });
-            console.log({mostRecentUpdate: mostRecentUpdate.update_id});
-            handleUpdate(mostRecentUpdate);
             return mostRecentUpdate.update_id + 1;
         }
     }
 }
 
-function callApiMethod(methodName, methodParams={}, callbacks={}) {
-    const {
-        after = ()=>{},
-        handler = (result)=>{},
-        onApiError = (responseObject)=>{},
-        onResError = (e)=>{},
-        onReqError = (e)=>{},
-    } = callbacks;
-
-    const requestJson = JSON.stringify(methodParams);
-    const requestOptions = {
-        headers: {
-            "Content-Type": "application/json",
-            "Content-Length": Buffer.byteLength(requestJson)
-        }
-    };
-
-    const req = https.request(apiurl + methodName, requestOptions);
-    req.on('response', (res) => {
-        var responseJson = '';
-        res.on('data', (chunk) => { responseJson += chunk; });
-        res.on('end', () => {
-            console.log('Response END');
-            responseObject = JSON.parse(responseJson);
-            if(responseObject.ok) {
-                handler(responseObject.result);
-                after();
+async function callApiMethod(methodName, methodParams={}) {
+    return new Promise((resolve, reject) => {
+        const requestJson = JSON.stringify(methodParams);
+        const requestOptions = {
+            headers: {
+                "Content-Type": "application/json",
+                "Content-Length": Buffer.byteLength(requestJson)
             }
-            else {
-                console.error(`API error ${responseObject.error_code} in ${methodName}`);
-                console.error(responseObject.description);
-                onApiError(responseObject);
-            }
+        };
+
+        const req = https.request(apiurl + methodName, requestOptions);
+        req.on('response', (res) => {
+            var responseJson = '';
+            res.on('data', (chunk) => { responseJson += chunk; });
+            res.on('end', () => {
+                apiResponse = JSON.parse(responseJson);
+                if(apiResponse.ok) {
+                    resolve(apiResponse.result);
+                }
+                else {
+                    console.error(`API error ${apiResponse.error_code} in ${methodName}`);
+                    console.error(apiResponse.description);
+                    reject(new TelegramBotApiError(apiResponse.description, apiResponse));
+                }
+            });
+            res.on('error', (e) => {
+                console.error(`Response error of type ${typeof e} in ${methodName}`);
+                console.error(e);
+                reject(e);
+            });
         });
-        res.on('error', (e) => {
-            console.error('Response error');
-            console.error(methodName);
+        req.on('error', (e) => {
+            console.error(`Request error of type ${typeof e} in ${methodName}`);
             console.error(e);
-            onResError(e);
+            reject(e);
         });
-    });
-    req.on('error', (e) => {
-        console.error('Request error');
-        console.error(methodName);
-        console.error(e);
-        onReqError(e);
-    });
 
-    req.write(requestJson);
-    req.end();
+        req.write(requestJson);
+        req.end();
+    });
 }
 
-function doLongPolling(handleUpdate, offset) {
+async function getUpdates(offset) {
     const params = {
-        "offset": offset,
         "timeout": pollingTimeout,
+        "offset": offset,
     };
 
-    const callbacks = {
-        handler: (result) => {
-            let offset = handleUpdatesFromLongPolling(handleUpdate, result);
-            console.log(`Long polling: OK. Starting anew with offset=${offset}`);
-            doLongPolling(handleUpdate, offset);
-        },
-        onApiError: (responseObject) => {
-            doLongPolling(handleUpdate);
-        },
-        onResError: (e) => {
-            doLongPolling(handleUpdate);
-        },
-        onReqError: (e) => {
-            doLongPolling(handleUpdate);
-        },
-    };
-
-    callApiMethod('getUpdates', params, callbacks);
+    return callApiMethod('getUpdates', params);
 }
 
-function deleteMessage(message) {
+async function deleteMessage(message) {
     const params = {
         chat_id: message.chat.id,
         message_id: message.message_id
@@ -135,10 +107,10 @@ function deleteMessage(message) {
         },
     };
 
-    callApiMethod('deleteMessage', params, callbacks);
+    return callApiMethod('deleteMessage', params, callbacks);
 }
 
-function copyWithKeyboard(message, keyboard) {
+async function copyWithKeyboard(message, keyboard) {
     let params = {
         from_chat_id: message.chat.id,
         message_id: message.message_id,
@@ -150,16 +122,11 @@ function copyWithKeyboard(message, keyboard) {
         params.reply_to_message_id = message.reply_to_message.message_id;
         params.allow_sending_without_reply = true;
     }
-    const callbacks = {
-        after: () => {
-            deleteMessage(message);
-        },
-    };
 
-    callApiMethod('copyMessage', params, callbacks);
+    return callApiMethod('copyMessage', params);
 }
 
-function replyWithKeyboard(message, keyboard, text='^') {
+async function replyWithKeyboard(message, keyboard, text='^') {
     const params = {
         reply_to_message_id: message.message_id,
         chat_id: message.chat.id,
@@ -168,20 +135,20 @@ function replyWithKeyboard(message, keyboard, text='^') {
         disable_notification: true,
     }
 
-    callApiMethod('sendMessage', params);
+    return callApiMethod('sendMessage', params);
 }
 
-function replaceKeyboard(message, keyboard) {
+async function replaceKeyboard(message, keyboard) {
     const params = {
         chat_id: message.chat.id,
         message_id: message.message_id,
         reply_markup: keyboard,
     };
 
-    callApiMethod('editMessageReplyMarkup', params);
+    return callApiMethod('editMessageReplyMarkup', params);
 }
 
-function sendTextMessage(chat_id, text, reply_to=undefined) {
+async function sendTextMessage(chat_id, text, reply_to=undefined) {
     const params = {
         chat_id: chat_id,
         text: text
@@ -190,16 +157,17 @@ function sendTextMessage(chat_id, text, reply_to=undefined) {
         params.reply_to_message_id = reply_to;
     }
 
-    callApiMethod('sendMessage', params);
+    return callApiMethod('sendMessage', params);
 }
 
-function sendStandardMessage(chat_id, messageKey, reply_to=undefined) {
-    sendTextMessage(chat_id, presetMessages.get(messageKey), reply_to);
+async function sendStandardMessage(chat_id, messageKey, reply_to=undefined) {
+    return sendTextMessage(chat_id, presetMessages.get(messageKey), reply_to);
 }
 
 module.exports = {
+    calculateOffset,
     callApiMethod,
-    doLongPolling,
+    getUpdates,
     copyWithKeyboard,
     replyWithKeyboard,
     replaceKeyboard,

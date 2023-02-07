@@ -1,4 +1,4 @@
-// require('dotenv').config();
+require('dotenv').config();
 
 const api = require('./modules/tgBotApi');
 const keyboards = require('./modules/keyboards');
@@ -22,7 +22,7 @@ async function handleBotCommand(entity, message) {
             let userCanEdit = true;
 
             if(message.chat.type !== "private") {
-                const chatMember = api.callApiMethod('getChatMember', {chat_id: message.chat.id, user_id: message.from.id});
+                const chatMember = await api.callApiMethod('getChatMember', {chat_id: message.chat.id, user_id: message.from.id});
                 const allowedStatuses = ['owner', 'administrator'];
                 userCanEdit = allowedStatuses.includes(chatMember.status);
             }
@@ -41,20 +41,6 @@ async function handleBotCommand(entity, message) {
 
             break;
     }
-}
-
-/**
- * handle callback query from an inline keyboard
- * @param {*} callback_query
- */
-async function handleCallbackQuery(callback_query) {
-    const {
-        id, from, message, data
-    } = callback_query;
-
-    //TODO maybe: make the call async, don't wait for resolution
-    api.callApiMethod('answerCallbackQuery', {callback_query_id: id});
-    handleReaction(message, from.id, data);
 }
 
 //TODO replace consecutive awaits with Promise.all()
@@ -159,9 +145,10 @@ async function handleUpdate(update) {
             lastMediaGroupId = undefined;
         }
 
+        let buttons;
         settings = await db.getChatSettings(message.chat.id);
         if(settings && ('defaultReactions' in settings) && settings.defaultReactions.length) {
-            const buttons = settings.defaultReactions.map(keyboards.Button.make);
+            buttons = settings.defaultReactions.map(keyboards.Button.make);
         }
         else { buttons = []; }
         const keyboard = keyboards.makeInlineKeyboard(buttons);
@@ -169,15 +156,22 @@ async function handleUpdate(update) {
             api.replyWithKeyboard(message, keyboard);
         }
         else{
-            api.copyWithKeyboard(message, keyboard);
+            await api.copyWithKeyboard(message, keyboard);
+            api.deleteMessage(message);
         }
 
         return;
     }
 
-    //callback queries from the buttons
+    //a button attached to a message was pressed
     if('callback_query' in update) {
-        handleCallbackQuery(update.callback_query);
+        const {
+            id, from, message, data
+        } = update.callback_query;
+
+        api.callApiMethod('answerCallbackQuery', {callback_query_id: id});
+        handleReaction(message, from.id, data);
+
         return;
     }
 }
@@ -196,13 +190,21 @@ async function main() {
     });
 
     db.start();
-    api.callApiMethod('getMe', {}, {
-        handler: (result) => {
-            me = result;
-            console.log('Bot\'s user id: ' + me.id);
-            api.doLongPolling(handleUpdate);
-        }
-    })
+    me = await api.callApiMethod('getMe', {})
+    console.log('Bot\'s user id: ' + me.id);
+
+    switch(process.env.METHOD) {
+        case 'LONG_POLLING':
+            let offset;
+            let updates;
+            while(true) {
+                updates = await api.getUpdates(offset);
+                updates.forEach(handleUpdate);
+                offset = api.calculateOffset(updates);
+            }
+        default:
+            throw new Error('Invalid configuration: no method for getting updates');
+    }
 }
 
 
