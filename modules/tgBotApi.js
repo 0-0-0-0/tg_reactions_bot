@@ -165,6 +165,7 @@ async function sendStandardMessage(chat_id, messageKey, reply_to=undefined) {
 }
 
 module.exports = {
+    TelegramBotApiError,
     calculateOffset,
     callApiMethod,
     getUpdates,

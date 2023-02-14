@@ -3,7 +3,6 @@ require('dotenv').config();
 const api = require('./modules/tgBotApi');
 const keyboards = require('./modules/keyboards');
 const db = require('./modules/database');
-const { Button } = require('./modules/keyboards');
 
 var me;
 var lastMediaGroupId;
@@ -87,15 +86,15 @@ async function handleReaction(message, user_id, newReactionText)
         if(reactionCount.has(text)) {
             let count = reactionCount.get(text);
             reactionCount.delete(text);
-            buttons.push(Button.makeWithCount(text, count));
+            buttons.push(keyboards.Button.makeWithCount(text, count));
         }
         else {
-            buttons.push(Button.make(text));
+            buttons.push(keyboards.Button.make(text));
         }
     }
     for([text, count] of reactionCount) {
         if(count > 0) {
-            buttons.push(Button.makeWithCount(text, count));
+            buttons.push(keyboards.Button.makeWithCount(text, count));
         }
     }
     const keyboard = keyboards.makeInlineKeyboard(buttons);
@@ -198,9 +197,20 @@ async function main() {
             let offset;
             let updates;
             while(true) {
-                updates = await api.getUpdates(offset);
-                updates.forEach(handleUpdate);
-                offset = api.calculateOffset(updates);
+                try{
+                    updates = await api.getUpdates(offset);
+                    updates.forEach(handleUpdate);
+                    offset = api.calculateOffset(updates);
+                }
+                catch(error) {
+                    if(error instanceof api.TelegramBotApiError) {
+                        //may or may not want to log/send something to the chat
+                        //otherwise OK, go on with the polling
+                    }
+                    else {
+                        throw error;
+                    }
+                }
             }
         default:
             throw new Error('Invalid configuration: no method for getting updates');
