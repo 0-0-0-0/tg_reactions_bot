@@ -22,10 +22,10 @@ mongoose.connection.on('close', (event) => {
     console.log('DB connection closed.');
 });
 
-function start() {
+async function start() {
     try{
         const options = { keepAlive: true, keepAliveInitialDelay: 300000 };
-        mongoose.connect(dbPath, options);
+        await mongoose.connect(dbPath, options);
     }
     catch(error) {
         console.error('Database error (connection):');

@@ -188,7 +188,7 @@ async function main() {
         db.stop();
     });
 
-    db.start();
+    await db.start();
     me = await api.callApiMethod('getMe', {})
     console.log('Bot\'s user id: ' + me.id);
 
