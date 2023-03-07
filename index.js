@@ -193,6 +193,19 @@ async function main() {
     console.log('Bot\'s user id: ' + me.id);
 
     switch(process.env.METHOD) {
+        case 'WEBHOOKS':
+            const webhookInfo = await api.callApiMethod('getWebhookInfo');
+            if(!webhookInfo) {
+                throw new Error("Couldn't get webhook info");
+            }
+            if(!webhookInfo.url) {
+                let isWebhookSet = await api.callApiMethod('setWebhook', {url: process.env.WEBHOOK_URL});
+                if(true !== isWebhookSet) {
+                    throw new Error("Couldn't set a webhook");
+                }
+            }
+            api.listenForUpdates(handleUpdate);
+            break;
         case 'LONG_POLLING':
             let offset;
             let updates;
@@ -205,7 +218,6 @@ async function main() {
                 catch(error) {
                     if(error instanceof api.TelegramBotApiError) {
                         //may or may not want to log/send something to the chat
-                        //otherwise OK, go on with the polling
                     }
                     else {
                         throw error;

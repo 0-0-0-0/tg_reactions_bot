@@ -94,20 +94,40 @@ async function getUpdates(offset) {
     return callApiMethod('getUpdates', params);
 }
 
+function listenForUpdates(handler) {
+    const server = https.createServer();
+    server.on('request', (req, res) => {
+        let requestJson = '';
+        req.on('data', (chunk) => { requestJson += chunk });
+        req.on('end', () => {
+            const update = JSON.parse(requestJson);
+            try{
+                handler(update);
+            }
+            catch(error) {
+                if(error instanceof api.TelegramBotApiError) {
+                    //may or may not want to log/send something to the chat
+                }
+                else {
+                    throw error;
+                }
+            }
+        });
+        req.on('error', (e) => {
+            console.error(`Incoming request error`);
+            console.error(e);
+        });
+    });
+    server.listen(process.env.WEBHOOK_PORT);
+}
+
 async function deleteMessage(message) {
     const params = {
         chat_id: message.chat.id,
         message_id: message.message_id
     };
-    const callbacks = {
-        handler: (result) => {
-            if(!result) {
-                sendStandardMessage(message.chat.id, 'permissionDelete');
-            }
-        },
-    };
 
-    return callApiMethod('deleteMessage', params, callbacks);
+    return callApiMethod('deleteMessage', params);
 }
 
 async function copyWithKeyboard(message, keyboard) {
@@ -169,6 +189,7 @@ module.exports = {
     calculateOffset,
     callApiMethod,
     getUpdates,
+    listenForUpdates,
     copyWithKeyboard,
     replyWithKeyboard,
     replaceKeyboard,
