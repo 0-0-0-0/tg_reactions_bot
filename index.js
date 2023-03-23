@@ -198,10 +198,10 @@ async function main() {
             if(!webhookInfo) {
                 throw new Error("Couldn't get webhook info");
             }
-            if(!webhookInfo.url) {
-                let isWebhookSet = await api.callApiMethod('setWebhook', {url: process.env.WEBHOOK_URL});
-                if(true !== isWebhookSet) {
-                    throw new Error("Couldn't set a webhook");
+            else {
+                console.log(`Webhook url: ${webhookInfo.url}`);
+                if(!webhookInfo.url) {
+                    throw new Error("Webhook is not set");
                 }
             }
             api.listenForUpdates(handleUpdate);

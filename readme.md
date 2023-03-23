@@ -1,15 +1,13 @@
-This is a Telegram bot intended as exercise with NodeJS
+This is a Telegram bot that allows to react to media messages with arbitrary emojis (or any short text).
+These reactions are shown as an inline keyboard, not native Telegram reactions.
 
-The bot allows to react to media messages with arbitrary emoji or text reactions.
-These reactions are shown as buttons under the message (an inline keyboard, not the native reactions feature).
-
-No web framework was used, just `https` and `mongoose` for the database.
+No web framework was used, just the `https` Node module and `mongoose` for the database.
 
 
 ### .env variables
 
 
-BOT_TOKEN
+BOT_TOKEN           - Telegram bot API token
 
 DB_PATH             - DB path for MongoDB
 
@@ -17,6 +15,6 @@ METHOD              - method for receiving updates. Permitted values: LONG_POLLI
 
 POLLING_TIMEOUT     - timeout for long polling (in seconds)
 
-WEBHOOK_PORT        - actual port to listen to
-
 WEBHOOK_URL         - webhook URL
+
+PORT                - webhook port

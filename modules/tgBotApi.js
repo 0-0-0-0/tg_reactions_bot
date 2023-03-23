@@ -118,7 +118,8 @@ function listenForUpdates(handler) {
             console.error(e);
         });
     });
-    server.listen(process.env.WEBHOOK_PORT);
+    const PORT = process.env.PORT || 443;
+    server.listen(PORT, () => {`Listening to port ${PORT}`});
 }
 
 async function deleteMessage(message) {
