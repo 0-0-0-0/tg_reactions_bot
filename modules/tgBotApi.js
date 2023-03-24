@@ -101,17 +101,7 @@ function listenForUpdates(handler) {
         req.on('data', (chunk) => { requestJson += chunk });
         req.on('end', () => {
             const update = JSON.parse(requestJson);
-            try{
-                handler(update);
-            }
-            catch(error) {
-                if(error instanceof api.TelegramBotApiError) {
-                    //may or may not want to log/send something to the chat
-                }
-                else {
-                    throw error;
-                }
-            }
+            handler(update);
         });
         req.on('error', (e) => {
             console.error(`Incoming request error`);

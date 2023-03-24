@@ -102,76 +102,87 @@ async function handleReaction(message, user_id, newReactionText)
 }
 
 async function handleUpdate(update) {
+    try {
     //handle messages containing bot commands
-    if('message' in update && 'entities' in update.message) {
-        const message = update.message;
-        const entities = message.entities;
-        const commandEntities = entities.filter((entity) => (entity.type == 'bot_command'));
-        if(commandEntities.length) {
-            for(entity of commandEntities) {
-                handleBotCommand(entity, message);
-            }
-            return;
-        }
-    }
-
-    //handle formatted replies
-    if('message' in update && 'reply_to_message' in update.message) {
-        const message = update.message;
-        const reply_to_message = message.reply_to_message;
-        if(reply_to_message.from.id == me.id && message.text && '+' === message.text.charAt(0)) {
-            handleReaction(reply_to_message, message.from.id, message.text.slice(1));
-            api.deleteMessage(message);
-            return;
-        }
-    }
-
-    //any other messages sent to the chat
-    if('message' in update) {
-        const message = update.message;
-        if(message.from.id == me.id) { return; }
-        if(message.text) { return; }
-
-        if('media_group_id' in message) {
-            if(message.media_group_id != lastMediaGroupId) {
-                lastMediaGroupId = message.media_group_id;
-            }
-            else {
+        if('message' in update && 'entities' in update.message) {
+            const message = update.message;
+            const entities = message.entities;
+            const commandEntities = entities.filter((entity) => (entity.type == 'bot_command'));
+            if(commandEntities.length) {
+                for(entity of commandEntities) {
+                    handleBotCommand(entity, message);
+                }
                 return;
             }
         }
-        else {
-            lastMediaGroupId = undefined;
+
+        //handle formatted replies
+        if('message' in update && 'reply_to_message' in update.message) {
+            const message = update.message;
+            const reply_to_message = message.reply_to_message;
+            if(reply_to_message.from.id == me.id && message.text && '+' === message.text.charAt(0)) {
+                handleReaction(reply_to_message, message.from.id, message.text.slice(1));
+                api.deleteMessage(message);
+                return;
+            }
         }
 
-        let buttons;
-        settings = await db.getChatSettings(message.chat.id);
-        if(settings && ('defaultReactions' in settings) && settings.defaultReactions.length) {
-            buttons = settings.defaultReactions.map(keyboards.Button.make);
-        }
-        else { buttons = []; }
-        const keyboard = keyboards.makeInlineKeyboard(buttons);
-        if(lastMediaGroupId) {
-            api.replyWithKeyboard(message, keyboard);
-        }
-        else{
-            await api.copyWithKeyboard(message, keyboard);
-            api.deleteMessage(message);
+        //any other messages sent to the chat
+        if('message' in update) {
+            const message = update.message;
+            if(message.from.id == me.id) { return; }
+            if(message.text) { return; }
+
+            if('media_group_id' in message) {
+                if(message.media_group_id != lastMediaGroupId) {
+                    lastMediaGroupId = message.media_group_id;
+                }
+                else {
+                    return;
+                }
+            }
+            else {
+                lastMediaGroupId = undefined;
+            }
+
+            let buttons;
+            settings = await db.getChatSettings(message.chat.id);
+            if(settings && ('defaultReactions' in settings) && settings.defaultReactions.length) {
+                buttons = settings.defaultReactions.map(keyboards.Button.make);
+            }
+            else { buttons = []; }
+            const keyboard = keyboards.makeInlineKeyboard(buttons);
+            if(lastMediaGroupId) {
+                api.replyWithKeyboard(message, keyboard);
+            }
+            else{
+                await api.copyWithKeyboard(message, keyboard);
+                api.deleteMessage(message);
+            }
+
+            return;
         }
 
-        return;
+        //a button attached to a message was pressed
+        if('callback_query' in update) {
+            const {
+                id, from, message, data
+            } = update.callback_query;
+
+            api.callApiMethod('answerCallbackQuery', {callback_query_id: id});
+            handleReaction(message, from.id, data);
+
+            return;
+        }
     }
-
-    //a button attached to a message was pressed
-    if('callback_query' in update) {
-        const {
-            id, from, message, data
-        } = update.callback_query;
-
-        api.callApiMethod('answerCallbackQuery', {callback_query_id: id});
-        handleReaction(message, from.id, data);
-
-        return;
+    catch(error) {
+        if(error instanceof api.TelegramBotApiError) {
+            //may or may not want to log/send something to the chat
+        }
+        else {
+            console.error(error.stack);
+            throw error;
+        }
     }
 }
 
