@@ -102,6 +102,8 @@ function listenForUpdates(handler) {
         req.on('end', () => {
             const update = JSON.parse(requestJson);
             handler(update);
+            res.statusCode = 200;
+            res.end();
         });
         req.on('error', (e) => {
             console.error(`Incoming request error`);

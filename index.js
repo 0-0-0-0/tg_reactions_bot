@@ -176,12 +176,9 @@ async function handleUpdate(update) {
         }
     }
     catch(error) {
+        console.error(error.stack);
         if(error instanceof api.TelegramBotApiError) {
             //may or may not want to log/send something to the chat
-        }
-        else {
-            console.error(error.stack);
-            throw error;
         }
     }
 }
@@ -215,7 +212,14 @@ async function main() {
                     throw new Error("Webhook is not set");
                 }
             }
-            api.listenForUpdates(handleUpdate);
+            try{
+                api.listenForUpdates(handleUpdate);
+            }
+            catch(error) {
+                console.error(`Couldn't start server`);
+                console.error(error.stack);
+                throw error;
+            }
             break;
         case 'LONG_POLLING':
             let offset;
