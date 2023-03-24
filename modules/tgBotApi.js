@@ -120,7 +120,9 @@ function listenForUpdates(handler) {
     const PORT = +process.env.PORT || 443;
     console.log("PORT: " + PORT);
     try {
-        server.listen(PORT, () => {`Listening to port ${PORT}`});
+        server.listen(PORT, () => {
+            console.log(`Listening to port ${PORT}`);
+        });
     }
     catch(error) {
         console.error(error.stack);
