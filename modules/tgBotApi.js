@@ -97,13 +97,16 @@ async function getUpdates(offset) {
 function listenForUpdates(handler) {
     const server = https.createServer();
     server.on('request', (req, res) => {
+        console.debug(`in request start`);
         let requestJson = '';
         req.on('data', (chunk) => { requestJson += chunk });
         req.on('end', () => {
+            console.debug(`in request end`);
             const update = JSON.parse(requestJson);
             handler(update);
             res.statusCode = 200;
             res.end();
+            console.debug(`out response end`);
         });
         req.on('error', (e) => {
             console.error(`Incoming request error`);
