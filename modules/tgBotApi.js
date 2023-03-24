@@ -94,9 +94,12 @@ async function getUpdates(offset) {
     return callApiMethod('getUpdates', params);
 }
 
-function listenForUpdates(handler) {
+async function listenForUpdates(handler) {
     const server = https.createServer();
     console.log("Created server");
+    server.on('error', (e) => {
+        console.error(`Server error ${e.code}`);
+    });
     server.on('request', (req, res) => {
         console.debug(`in request start`);
         let requestJson = '';
@@ -120,9 +123,10 @@ function listenForUpdates(handler) {
     const PORT = +process.env.PORT || 443;
     console.log("PORT: " + PORT);
     try {
-        server.listen(PORT, () => {
-            console.log(`Listening to port ${PORT}`);
+        server.on('listening', () => {
+            console.log('finally listening on ' + PORT);
         });
+        await server.listen(PORT);
     }
     catch(error) {
         console.error(error.stack);

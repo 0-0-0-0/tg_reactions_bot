@@ -217,7 +217,7 @@ async function main() {
             try{
                 console.log("try block");
                 console.log("calling api.listenForUpdates");
-                api.listenForUpdates(handleUpdate);
+                await api.listenForUpdates(handleUpdate);
                 console.log("called api.listenForUpdates");
             }
             catch(error) {
