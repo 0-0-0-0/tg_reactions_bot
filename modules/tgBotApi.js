@@ -96,25 +96,29 @@ async function getUpdates(offset) {
 
 function listenForUpdates(handler) {
     const server = https.createServer();
+    console.log("Created server");
     server.on('request', (req, res) => {
         console.debug(`in request start`);
         let requestJson = '';
         req.on('data', (chunk) => { requestJson += chunk });
         req.on('end', () => {
-            console.debug(`in request end`);
+            console.log(`in request end`);
             const update = JSON.parse(requestJson);
             handler(update);
             res.statusCode = 200;
             res.end();
-            console.debug(`out response end`);
+            console.log(`out response end`);
         });
         req.on('error', (e) => {
             console.error(`Incoming request error`);
             console.error(e);
         });
     });
+    console.log("Attached event listeners");
     const PORT = process.env.PORT || 443;
+    console.log("PORT: " + PORT);
     server.listen(PORT, () => {`Listening to port ${PORT}`});
+    console.log("Called server.listen()");
 }
 
 async function deleteMessage(message) {
