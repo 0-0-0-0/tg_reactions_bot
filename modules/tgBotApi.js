@@ -115,9 +115,16 @@ function listenForUpdates(handler) {
         });
     });
     console.log("Attached event listeners");
-    const PORT = process.env.PORT || 443;
+    console.log(process.env.PORT)
+    console.log(+process.env.PORT);
+    const PORT = +process.env.PORT || 443;
     console.log("PORT: " + PORT);
-    server.listen(PORT, () => {`Listening to port ${PORT}`});
+    try {
+        server.listen(PORT, () => {`Listening to port ${PORT}`});
+    }
+    catch(error) {
+        console.error(error.stack);
+    }
     console.log("Called server.listen()");
 }
 
