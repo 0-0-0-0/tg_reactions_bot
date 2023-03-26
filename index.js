@@ -209,22 +209,10 @@ async function main() {
             else {
                 console.log(`Webhook url: ${webhookInfo.url}`);
                 if(!webhookInfo.url) {
-                    console.log("checking webhookInfo.url - before error throw");
                     throw new Error("Webhook is not set");
                 }
             }
-            console.log("before try block");
-            try{
-                console.log("try block");
-                console.log("calling api.listenForUpdates");
-                await api.listenForUpdates(handleUpdate);
-                console.log("called api.listenForUpdates");
-            }
-            catch(error) {
-                console.error(`Couldn't start server`);
-                console.error(error.stack);
-                throw error;
-            }
+            api.listenForUpdates(handleUpdate);
             break;
         case 'LONG_POLLING':
             let offset;

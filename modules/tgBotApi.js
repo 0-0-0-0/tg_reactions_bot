@@ -4,6 +4,7 @@ const pollingTimeout = +process.env.POLLING_TIMEOUT;
 const apiurl = `https://api.telegram.org/bot${process.env.BOT_TOKEN}/`;
 
 const https = require('https');
+const http = require('http');
 
 let presetMessages = new Map();
 
@@ -94,44 +95,30 @@ async function getUpdates(offset) {
     return callApiMethod('getUpdates', params);
 }
 
-async function listenForUpdates(handler) {
-    const server = https.createServer();
-    console.log("Created server");
+function listenForUpdates(handler) {
+    const server = process.env.USE_HTTPS ? https.createServer() : http.createServer();
     server.on('error', (e) => {
         console.error(`Server error ${e.code}`);
     });
     server.on('request', (req, res) => {
-        console.debug(`in request start`);
         let requestJson = '';
         req.on('data', (chunk) => { requestJson += chunk });
         req.on('end', () => {
-            console.log(`in request end`);
             const update = JSON.parse(requestJson);
             handler(update);
             res.statusCode = 200;
             res.end();
-            console.log(`out response end`);
         });
         req.on('error', (e) => {
             console.error(`Incoming request error`);
             console.error(e);
         });
     });
-    console.log("Attached event listeners");
-    console.log(process.env.PORT)
-    console.log(+process.env.PORT);
-    const PORT = +process.env.PORT || 443;
-    console.log("PORT: " + PORT);
-    try {
-        server.on('listening', () => {
-            console.log('finally listening on ' + PORT);
-        });
-        await server.listen(PORT);
-    }
-    catch(error) {
-        console.error(error.stack);
-    }
-    console.log("Called server.listen()");
+    const PORT = +process.env.PORT || 3000;
+    server.on('listening', () => {
+        console.log(`Listening on port ${PORT}`);
+    });
+    server.listen(PORT);
 }
 
 async function deleteMessage(message) {
